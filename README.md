@@ -1,8 +1,8 @@
-# Fractal Email Service
+# Email Service
 
 ## Overview
 
-Fractal Email Service is built using NestJS, Prisma, MySQL, RabbitMQ, and SendGrid.
+Email Service is built using NestJS, Prisma, MySQL, RabbitMQ, and SendGrid.
 
 Features:
 
@@ -31,7 +31,7 @@ Features:
 Create a `.env` file:
 
 env
-DATABASE_URL=mysql://username:password@localhost:3306/fractal_email_service
+DATABASE_URL=mysql://username:password@localhost:3306/email_service
 
 SENDGRID_API_KEY=YOUR_SENDGRID_API_KEY
 
@@ -77,8 +77,8 @@ curl --location 'http://localhost:3000/sendgrid/send' \
 --header 'Content-Type: application/json' \
 --data-raw '{
   "recipientEmail": "test@example.com",
-  "subject": "Fractal Email Service Test",
-  "bodyContent": "<h1>Hello from Fractal Email Service</h1>"
+  "subject": "Email Service Test",
+  "bodyContent": "<h1>Hello from Email Service</h1>"
 }'
 
 
