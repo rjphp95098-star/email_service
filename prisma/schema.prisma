@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmailStatus {
+  QUEUED
+  PROCESSED
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  DROPPED
+  FAILED
+}
+
+model SmtpSetting {
+  id          Int    @id @default(autoincrement())
+  fromEmail   String @unique @map("sender_email")
+  fromName    String @map("from_name")
+  emailStatus String @map("email_status")
+  isDeleted   Int    @default(0) @map("is_deleted")
+  sentCount   Int    @default(0) @map("email_count")
+
+  signature EmailSignature?
+
+  @@map("smtp_settings")
+}
+
+model EmailSignature {
+  id        Int      @id @default(autoincrement())
+  smtpId    Int?     @unique @map("smtp_id")
+  content   String   @db.LongText
+  createdBy Int      @default(0) @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  isDeleted Int      @default(0) @map("is_deleted")
+
+  smtpSetting SmtpSetting? @relation(fields: [smtpId], references: [id])
+
+  @@map("email_signatures")
+}
+
+model WebhookEvent {
+  id Int @id @default(autoincrement())
+
+  guid String @unique
+
+  userEmailId Int? @map("user_email_id")
+
+  eventType String
+
+  eventTimestamp DateTime
+
+  webhookPayload Json
+
+  createdAt DateTime @default(now())
+
+  @@index([guid])
+  @@index([userEmailId])
+  @@map("webhook_events")
+}
+
+model Setting {
+  id        BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  key       String    @unique
+  value     String    @db.LongText
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  @@map("settings")
+}
+
+model UserEmail {
+  autoId         Int      @id @default(autoincrement()) @map("auto_id")
+  parentId       Int      @map("parent_id")
+  adminId        Int      @default(0) @map("admin_id")
+  userEmail      String   @map("user_email")
+  userName       String   @map("user_name")
+  userSubject    String   @map("user_subject")
+  userDesc       String   @map("user_desc") @db.LongText
+  userToken      String   @map("user_token")
+  emailCount     Int      @default(0) @map("email_count")
+  emailStatus    String?  @map("email_status")
+  userCreatedate DateTime @default(now()) @map("user_createdate")
+  isDeleted      Int      @map("is_deleted")
+  potentialLeads Int      @default(0) @map("potential_leads")
+  unsubscribe    Int      @default(0)
+  errordetails   String   @default("")
+  isSend         Int      @default(1) @map("is_send")
+  tempGroupId    Int      @map("temp_group_id")
+  excelId        Int      @map("excel_id")
+  groupExcelid   Int      @map("group_excelid")
+  templateTblId  Int      @map("template_tbl_id")
+  followType     String   @map("follow_type")
+  followSteps    Int      @map("follow_steps")
+  followDate     DateTime @default(now()) @map("follow_date")
+  sendGridId     String?
+  senderIp       String   @map("sender_ip")
+  viewAlertSent  Int      @default(0) @map("view_alert_sent")
+  smtpSettingId  Int?     @map("smtp_setting_id")
+  sentDate       DateTime? @map("sent_date") @db.DateTime(0)
+
+  @@index([autoId, parentId, groupExcelid, excelId, tempGroupId, templateTblId, userEmail], map: "index")
+  @@index([followType, isSend, isDeleted, unsubscribe, autoId], map: "idx_dispatch_lookup")
+  @@index([tempGroupId, followType, isDeleted, isSend, followDate], map: "idx_followup_pick")
+  @@map("user_emails")
+}
+
+model ExcelUploadTemp {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @db.VarChar(200)
+  groupId   Int      @map("group_id")
+  excelName String   @map("excel_name")
+  excelTime String   @default("0") @map("excel_time")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([groupId, excelName], map: "idx_group_excel")
+  @@map("excel_upload_temp")
+}
+
+model ExcelDataUpload {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique @db.VarChar(200)
+  groupExcelId Int      @map("group_excelId")
+  groupId      Int      @map("group_id")
+  createdDate  DateTime @default(now()) @map("created_date")
+  status       Int      @default(0)
+  reason       String
+  isLock       Int      @default(0)
+
+  @@map("excel_data_upload")
+}
+
+model GroupExcel {
+  groupExcelid Int      @id @default(autoincrement()) @map("group_excelid")
+  groupId      Int      @map("group_id")
+  excelName    String   @map("excel_name")
+  excelTime    String   @map("excel_time")
+  isDeleted    String   @map("is_deleted")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("group_excel")
+}
+
+model DuplicateEmailRecord {
+  id             Int      @id @default(autoincrement())
+  email          String
+  date           DateTime @default(now())
+  excelsheetName String
+  groupExcelId   Int      @map("group_excelId")
+  groupId        Int      @map("group_id")
+
+  @@map("duplicate_email_records")
+}
+
+model TemplateGroup {
+  id               Int      @id @default(autoincrement())
+  createdBy        Int      @default(0) @map("created_by")
+  tempId           Int      @map("temp_id")
+  settingsId       Int      @map("settings_id")
+  emailLimitPerDay Int      @default(600) @map("email_limit_per_day")
+  timezone         String
+  workingDays      String   @map("working_days")
+  startDate        DateTime @default(now()) @map("start_date")
+  groupeName       String   @map("groupe_name")
+  archive          Int?     @default(0)
+  isDelete         String   @map("is_delete")
+  createdAt        DateTime @default(now()) @map("created_at")
+  isAi             Int      @default(0) @map("is_ai")
+
+  @@map("template_grouptbl")
+}
+
+model Template {
+  tempId           Int      @id @default(autoincrement()) @map("temp_id")
+  eventId          Int      @map("event_id")
+  groupId          Int      @map("group_id")
+  groupSignatureId Int      @map("group_signature_id")
+  tempName         String   @map("temp_name")
+  tempSubject      String   @map("temp_subject")
+  tempDesc         String   @map("temp_desc") @db.LongText
+  aiPrompt         String?  @map("ai_prompt") @db.Text
+  tempTime         DateTime @map("temp_time") @db.Time()
+  tempTimezone     DateTime @map("temp_timezone") @db.Time()
+  groupStep        Int      @map("group_step")
+  groupDays        String   @map("group_days")
+  tempSignature    String   @map("temp_signature") @db.LongText
+  isDelete         String   @map("is_delete")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([eventId, groupId], map: "index")
+  @@map("template_tbl")
+}
+
+model TrackingLog {
+  id          Int      @id @default(autoincrement())
+  token       String
+  eId         Int      @default(0) @map("e_id")
+  datetime    DateTime @default(now())
+  ip          String
+  event       String
+  timestamp   String
+  useragent   String
+  sgEventId   String   @map("sg_event_id")
+  sgMessageId String   @map("sg_message_id")
+  email       String
+
+  @@index([eId], map: "e_id")
+  @@map("tracking_log")
+}
+
+model UnsubscribeUserEmail {
+  autoId         Int      @id @default(autoincrement()) @map("auto_id")
+  userEmailId    Int      @map("user_email_id")
+  parentId       Int      @map("parent_id")
+  adminId        Int      @default(0) @map("admin_id")
+  userEmail      String   @map("user_email")
+  userName       String   @map("user_name")
+  userSubject    String   @map("user_subject")
+  userDesc       String   @map("user_desc") @db.LongText
+  userToken      String   @map("user_token")
+  emailCount     Int      @default(0) @map("email_count")
+  emailStatus    String   @default("no") @map("email_status")
+  userCreatedate DateTime @default(now()) @map("user_createdate")
+  isDeleted      Int      @map("is_deleted")
+  potentialLeads Int      @default(0) @map("potential_leads")
+  unsubscribe    Int      @default(0)
+  errordetails   String   @default("")
+  isSend         Int      @default(1) @map("is_send")
+  tempGroupId    Int      @map("temp_group_id")
+  groupExcelid   Int      @map("group_excelid")
+  templateTblId  Int      @map("template_tbl_id")
+  followType     String   @map("follow_type")
+  followSteps    Int      @map("follow_steps")
+  followDate     DateTime @default(now()) @map("follow_date")
+  sendGridId     String   @default("")
+
+  @@map("unsubscribe_user_email")
+}
+
+model GroupSignature {
+  signatureId   Int      @id @default(autoincrement()) @map("signature_id")
+  groupId       Int      @map("group_id")
+  signatureBody String   @map("signature_body") @db.LongText
+  isDeleted     String   @map("is_deleted")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("group_signature")
+}
+
+/// Legacy queue CronController::sendGroupEmail() wrote a due follow-up into,
+/// for a PHP sender that never ran. FollowupEmailSendService now decides and
+/// sends in one pass and treats user_emails as the record of what went out, so
+/// nothing reads or writes this table any more - kept mapped only so the table
+/// isn't a blind spot.
+model FollowData {
+  id            Int    @id @default(autoincrement())
+  userEmail     String @unique @map("user_email")
+  subject       String @db.Text
+  messageBody   String @map("messageBody") @db.LongText
+  autoId        Int    @map("auto_id")
+  userToken     String @map("user_token")
+  smptSettingId Int
+  followSteps   Int    @map("follow_steps")
+  newEntryData  String @map("newEntry_data") @db.LongText
+  tempGroupId   Int    @map("temp_group_id")
+  status        Int    @default(0)
+  reason        String @default("")
+  isLock        Int    @default(0)
+
+  @@map("follow_data")
+}
+
+/// Which SMTP setting a sequence last sent through - written on every send.
+model GroupSmtp {
+  id        Int      @id @default(autoincrement())
+  groupId   Int      @map("group_id")
+  smptId    Int      @map("smpt_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("groupsmtp_tbl")
+}
+
+/// A sequence's own pool of domains to rotate through, one per working week -
+/// insertion order (id ascending) is the rotation order, so the first row
+/// added for a sequence is week 1's domain, the second week 2's, and so on,
+/// wrapping back to the first once every domain in the pool has had its week.
+/// smtp_setting_id is globally unique here - a domain belongs to at most one
+/// sequence's pool at a time, never shared across sequences.
+///
+/// sequence_id is template_grouptbl.id (the same "group" every other model in
+/// this schema calls groupId) - the table predates this feature under a
+/// different naming scheme, and already existed with real rows when this
+/// feature was built, so it's mapped as-is rather than renamed.
+///
+/// Read only by DomainRotationService.getActiveDomainForWorkingWeek when a
+/// NEW Initial Email is created - never consulted for an existing follow-up,
+/// which reuses the domain already stored on its Initial Email
+/// (user_emails.smtp_setting_id). A sequence with no rows here yet has no
+/// configured pool - DomainRotationService returns null rather than erroring,
+/// and callers fall back to that sequence's legacy fixed domain.
+model SequenceSmtpSetting {
+  id            Int      @id @default(autoincrement())
+  groupId       Int      @map("sequence_id")
+  smtpSettingId Int      @unique @map("smtp_setting_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("sequence_smtp_settings")
+}
